@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  title: API Gestión de Préstamos (Gdev)
+  description: API REST para administrar clientes y préstamos en memoria.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Servidor Local
+paths:
+  /clientes:
+    get:
+      summary: Obtener todos los clientes
+      responses:
+        '200':
+          description: Lista de clientes exitosa
+    post:
+      summary: Crear un nuevo cliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre: { type: string }
+                email: { type: string }
+                edad: { type: integer }
+                tipoCliente: { type: string, enum: [REGULAR, VIP] }
+      responses:
+        '201':
+          description: Cliente creado exitosamente
+
+  /prestamos/activos:
+    get:
+      summary: Obtener préstamos con estado PENDIENTE
+      responses:
+        '200':
+          description: Lista de préstamos activos
+
+  /prestamos/{id}/total-pagar:
+    get:
+      summary: Calcular el monto total a pagar con intereses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cálculo realizado correctamente
