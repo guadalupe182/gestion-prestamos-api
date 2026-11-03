@@ -28,6 +28,39 @@ Solución desarrollada para la evaluación técnica de **Desarrollador Senior Ja
 
 ---
 
+## 🔐 Integración con GDEV Auth
+
+La API ahora soporta registro de usuarios validando su `licenseKey` contra el CRM de GDEV.
+Antes de acceder a los endpoints de clientes y préstamos, el cliente debe obtener un JWT mediante:
+
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
+
+{
+  "username": "contador",
+  "password": "passwordSegura123",
+  "licenseKey": "licencia-gdev"
+}
+```
+
+El token devuelto debe enviarse en el header:
+
+```http
+Authorization: Bearer <token>
+```
+
+Variables de entorno relevantes:
+
+```text
+GDEV_LICENSE_VALIDATION_URL=https://api.gdevsoftware.com/api/v1/licenses/validate/{key}
+JWT_SECRET=<secreto-de-al-menos-32-bytes>
+JWT_EXPIRATION_MS=3600000
+DB_URL=jdbc:h2:mem:gdevloans;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+```
+
+---
+
 ## ⚙️ Cómo ejecutar el proyecto
 
 ### Opción 1: Ejecución local con Maven
