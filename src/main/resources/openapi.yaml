@@ -75,6 +75,38 @@ paths:
         '200':
           description: Token JWT emitido
 
+  /loans/{loanId}/payments:
+    post:
+      summary: Registrar un pago para un préstamo
+      parameters:
+        - name: loanId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '201':
+          description: Pago registrado correctamente
+    get:
+      summary: Obtener el historial de pagos de un préstamo
+      parameters:
+        - name: loanId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Historial de pagos
+
 components:
   securitySchemes:
     bearerAuth:
@@ -95,3 +127,9 @@ components:
       properties:
         username: { type: string }
         password: { type: string }
+    PaymentRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, format: double, minimum: 0.01 }
+        paymentDate: { type: string, format: date }
