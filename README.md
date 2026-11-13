@@ -61,6 +61,43 @@ DB_URL=jdbc:h2:mem:gdevloans;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
 
 ---
 
+## 📈 Cálculo de intereses
+
+La API soporta dos flujos de préstamos:
+
+- **Préstamos en memoria** (`/api/v1/prestamos`): la tasa de interés depende del tipo de cliente:
+  - 👑 **VIP:** 5%
+  - 👤 **REGULAR:** 10%
+
+  El total a pagar se calcula como `monto × (1 + tasa)` y se consulta mediante:
+
+  ```http
+  PATCH /api/v1/prestamos/{id}/total-pagar
+  ```
+
+- **Préstamos JPA** (`/api/loans`): interés simple con tasa anual por defecto del 10% (configurable por préstamo), calculado como:
+
+  ```text
+  interés = monto × tasa × (días transcurridos / 365)
+  ```
+
+  El cálculo se limita a la fecha de fin (`endDate`) cuando existe y devuelve `0` para préstamos pagados. Se consulta mediante:
+
+  ```http
+  GET /api/loans/{id}/calculate-interest
+  ```
+
+  Respuesta de ejemplo:
+
+  ```json
+  {
+    "loanId": "123e4567-e89b-12d3-a456-426614174000",
+    "interest": 100.00
+  }
+  ```
+
+---
+
 ## ⚙️ Cómo ejecutar el proyecto
 
 ### Opción 1: Ejecución local con Maven
