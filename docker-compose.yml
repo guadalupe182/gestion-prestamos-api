@@ -1,0 +1,48 @@
+services:
+  prestamos-db:
+    image: postgres:15-alpine
+    container_name: prestamos-db-sandbox
+    restart: always
+    environment:
+      POSTGRES_DB: prestamos_db
+      POSTGRES_USER: prestamos_user
+      POSTGRES_PASSWORD: prestamos_password_segura
+    volumes:
+      - prestamos_db_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    networks:
+      - gdev-sandbox-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prestamos_user -d prestamos_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prestamos-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prestamos-api-sandbox
+    restart: always
+    ports:
+      - "127.0.0.1:8082:8080" # Lo aislamos para que solo Nginx entre
+    depends_on:
+      prestamos-db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DATABASE_URL=jdbc:postgresql://prestamos-db-sandbox:5432/prestamos_db
+      - DATABASE_USERNAME=prestamos_user
+      - DATABASE_PASSWORD=prestamos_password_segura
+    networks:
+      - gdev-sandbox-net
+
+volumes:
+  prestamos_db_data:
+
+networks:
+  gdev-sandbox-net:
+    external: true

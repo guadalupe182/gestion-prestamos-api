@@ -21,7 +21,7 @@ public class PrestamoController {
 
     @PostMapping
     public ResponseEntity<Prestamo> crearPrestamo(@RequestBody Map<String, Object> body){
-        double monto = Double.parseDouble(body.get("clienteId").toString());
+        double monto = Double.parseDouble(body.get("monto").toString());
         String clienteId = body.get("clienteId").toString();
         return new ResponseEntity<>(prestamoService.crearPrestamo(monto, clienteId), HttpStatus.CREATED);
     }
