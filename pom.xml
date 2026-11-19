@@ -78,6 +78,13 @@
             <optional>true</optional>
         </dependency>
 
+                <!-- AGREGADO: Driver de PostgreSQL para OCI -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Testing (Para las pruebas unitarias que pide el PDF) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
