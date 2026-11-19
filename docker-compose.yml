@@ -34,9 +34,10 @@ services:
       - .env
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - DATABASE_URL=jdbc:postgresql://prestamos-db-sandbox:5432/prestamos_db
-      - DATABASE_USERNAME=prestamos_user
-      - DATABASE_PASSWORD=prestamos_password_segura
+      # AQUI ESTA EL FIX: Cambiamos DATABASE_ por DB_ para que Spring los lea
+      - DB_URL=jdbc:postgresql://prestamos-db-sandbox:5432/prestamos_db
+      - DB_USERNAME=prestamos_user
+      - DB_PASSWORD=prestamos_password_segura
     networks:
       - gdev-sandbox-net
 
