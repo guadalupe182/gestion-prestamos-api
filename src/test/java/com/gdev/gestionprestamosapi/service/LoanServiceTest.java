@@ -5,11 +5,15 @@ import com.gdev.gestionprestamosapi.model.Loan;
 import com.gdev.gestionprestamosapi.model.LoanStatus;
 import com.gdev.gestionprestamosapi.repository.ClientRepository;
 import com.gdev.gestionprestamosapi.repository.LoanRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,6 +34,18 @@ class LoanServiceTest {
 
     @InjectMocks
     private LoanService loanService;
+
+    @BeforeEach
+    void setUpSecurity() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("tenant-1", null,
+                        java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"))));
+    }
+
+    @AfterEach
+    void clearSecurity() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void calculateInterest_generatesSimpleInterestForActiveLoan() {

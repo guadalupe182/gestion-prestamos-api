@@ -3,8 +3,11 @@ package com.gdev.gestionprestamosapi.service;
 import com.gdev.gestionprestamosapi.model.EstadoPrestamo;
 import com.gdev.gestionprestamosapi.model.Prestamo;
 import com.gdev.gestionprestamosapi.model.TipoCliente;
+import com.gdev.gestionprestamosapi.security.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -27,21 +30,28 @@ public class PrestamoService {
     public Prestamo crearPrestamo(double monto, String clienteId){
         log.info("Creando prestamo para cliente ID:{}", clienteId );
 
+        String tenantId = SecurityUtils.getCurrentUsername();
+
         // Delegamos la busqueda del cliente a su propio service
         var cliente  = clienteService.obtenerClienteporId(clienteId);
         if(cliente == null){
             log.error("Cliente ID {} no encontrado",  clienteId);
             throw new IllegalArgumentException("El cliente asignado no existe");
         }
+        if (!tenantId.equals(cliente.tenantId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El cliente no pertenece al usuario autenticado");
+        }
         var id = UUID.randomUUID().toString();
-        var prestamo =  new Prestamo(id, monto, clienteId, LocalDate.now(), EstadoPrestamo.PENDIENTE);
+        var prestamo =  new Prestamo(id, monto, clienteId, LocalDate.now(), EstadoPrestamo.PENDIENTE, tenantId);
         prestamosDb.put(id, prestamo);
         return prestamo;
     }
 
     public java.util.List<Prestamo> obtenerPrestamosActivos(){
+        String tenantId = SecurityUtils.getCurrentUsername();
         return prestamosDb.values().stream()
                 .filter(p -> p.getEstado() == EstadoPrestamo.PENDIENTE)
+                .filter(p -> tenantId.equals(p.getTenantId()))
                 .toList();
     }
 
@@ -50,10 +60,17 @@ public class PrestamoService {
         if(prestamo == null){
             throw new java.util.NoSuchElementException("El prestamo no existe");
         }
+        if (!SecurityUtils.getCurrentUsername().equals(prestamo.getTenantId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El préstamo no pertenece al usuario autenticado");
+        }
         prestamo.setEstado(nuevoEstado);
         log.info("Estado del prestamo {} actualizado a {}", id, nuevoEstado);
     }
     public void eliminarPrestamo(String id){
+        var prestamo = prestamosDb.get(id);
+        if (prestamo != null && !SecurityUtils.getCurrentUsername().equals(prestamo.getTenantId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El préstamo no pertenece al usuario autenticado");
+        }
         prestamosDb.remove(id);
         log.info("Prestamo {} eliminado", id);
     }
@@ -63,6 +80,9 @@ public class PrestamoService {
         var prestamo = prestamosDb.get(prestamoId);
         if(prestamo == null){
             throw new java.util.NoSuchElementException("Prestamo no encontrado");
+        }
+        if (!SecurityUtils.getCurrentUsername().equals(prestamo.getTenantId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El préstamo no pertenece al usuario autenticado");
         }
 
         //Consultamos al servicio de clientes para obtener el objeto
