@@ -7,6 +7,7 @@ import com.gdev.gestionprestamosapi.model.Loan;
 import com.gdev.gestionprestamosapi.model.LoanStatus;
 import com.gdev.gestionprestamosapi.repository.ClientRepository;
 import com.gdev.gestionprestamosapi.repository.LoanRepository;
+import com.gdev.gestionprestamosapi.security.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +40,7 @@ public class LoanService {
         Client client = clientRepository.findById(request.clientId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente no encontrado"));
 
-        Loan loan = new Loan(client, request.amount(), request.tenantId());
+        Loan loan = new Loan(client, request.amount(), SecurityUtils.getCurrentUsername());
         if (request.interestRate() != null) {
             loan.setInterestRate(request.interestRate());
         }
@@ -58,7 +59,7 @@ public class LoanService {
 
     @Transactional(readOnly = true)
     public List<LoanResponse> findAll() {
-        return loanRepository.findAll().stream().map(this::toResponse).toList();
+        return loanRepository.findByTenantId(SecurityUtils.getCurrentUsername()).stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -89,8 +90,7 @@ public class LoanService {
         if (request.status() != null) {
             loan.setStatus(request.status());
         }
-        loan.setTenantId(request.tenantId());
-
+        // tenantId se deriva del usuario autenticado y no se permite cambiar desde el cuerpo
         return toResponse(loanRepository.save(loan));
     }
 
@@ -134,8 +134,12 @@ public class LoanService {
     }
 
     private Loan getLoan(UUID id) {
-        return loanRepository.findById(id)
+        Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Préstamo no encontrado"));
+        if (!loan.getTenantId().equals(SecurityUtils.getCurrentUsername())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El préstamo no pertenece al usuario autenticado");
+        }
+        return loan;
     }
 
     private void validateDates(LocalDate startDate, LocalDate endDate) {

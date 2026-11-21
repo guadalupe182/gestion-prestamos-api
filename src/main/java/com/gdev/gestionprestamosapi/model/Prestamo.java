@@ -15,4 +15,5 @@ public class Prestamo {
     private String clienteId;
     private LocalDate fecha;
     private EstadoPrestamo estado;
+    private String tenantId;
 }
