@@ -2,6 +2,8 @@ package com.gdev.gestionprestamosapi.service;
 
 import com.gdev.gestionprestamosapi.client.AuthClient;
 import com.gdev.gestionprestamosapi.dto.AuthResponse;
+import com.gdev.gestionprestamosapi.dto.LicenseValidationRequest;
+import com.gdev.gestionprestamosapi.dto.LicenseValidationResponse;
 import com.gdev.gestionprestamosapi.dto.LoginRequest;
 import com.gdev.gestionprestamosapi.dto.RegisterRequest;
 import com.gdev.gestionprestamosapi.model.AppUser;
@@ -59,6 +61,21 @@ public class AuthService {
 
         return new AuthResponse(jwtService.generateToken(user.getUsername()), "Bearer",
                 jwtService.getExpirationSeconds());
+    }
+
+    public LicenseValidationResponse validateLicense(String licenseKey) {
+        boolean licenseValid;
+        try {
+            licenseValid = authClient.isLicenseValid(licenseKey);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No fue posible validar la licencia en el CRM de GDEV", e);
+        }
+
+        return new LicenseValidationResponse(
+                licenseValid,
+                licenseValid ? "Licencia válida" : "La licenseKey de GDEV no es válida"
+        );
     }
 
     public AuthResponse login(LoginRequest request) {

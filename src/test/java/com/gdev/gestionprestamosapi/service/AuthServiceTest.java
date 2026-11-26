@@ -2,6 +2,7 @@ package com.gdev.gestionprestamosapi.service;
 
 import com.gdev.gestionprestamosapi.client.AuthClient;
 import com.gdev.gestionprestamosapi.dto.AuthResponse;
+import com.gdev.gestionprestamosapi.dto.LicenseValidationResponse;
 import com.gdev.gestionprestamosapi.dto.RegisterRequest;
 import com.gdev.gestionprestamosapi.repository.AppUserRepository;
 import com.gdev.gestionprestamosapi.security.JwtService;
@@ -59,5 +60,23 @@ class AuthServiceTest {
 
         assertThat(response.token()).isEqualTo("token");
         assertThat(response.tokenType()).isEqualTo("Bearer");
+    }
+
+    @Test
+    void validateLicenseReturnsValidForGoodLicense() {
+        when(authClient.isLicenseValid("good-license")).thenReturn(true);
+
+        LicenseValidationResponse response = authService.validateLicense("good-license");
+
+        assertThat(response.valid()).isTrue();
+    }
+
+    @Test
+    void validateLicenseReturnsInvalidForBadLicense() {
+        when(authClient.isLicenseValid("bad-license")).thenReturn(false);
+
+        LicenseValidationResponse response = authService.validateLicense("bad-license");
+
+        assertThat(response.valid()).isFalse();
     }
 }
