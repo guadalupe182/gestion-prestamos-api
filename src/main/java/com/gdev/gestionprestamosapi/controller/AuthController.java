@@ -1,6 +1,8 @@
 package com.gdev.gestionprestamosapi.controller;
 
 import com.gdev.gestionprestamosapi.dto.AuthResponse;
+import com.gdev.gestionprestamosapi.dto.LicenseValidationRequest;
+import com.gdev.gestionprestamosapi.dto.LicenseValidationResponse;
 import com.gdev.gestionprestamosapi.dto.LoginRequest;
 import com.gdev.gestionprestamosapi.dto.RegisterRequest;
 import com.gdev.gestionprestamosapi.service.AuthService;
@@ -25,6 +27,11 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         return new ResponseEntity<>(authService.register(request), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/validate-license")
+    public ResponseEntity<LicenseValidationResponse> validateLicense(@Valid @RequestBody LicenseValidationRequest request) {
+        return ResponseEntity.ok(authService.validateLicense(request.licenseKey()));
     }
 
     @PostMapping("/login")
