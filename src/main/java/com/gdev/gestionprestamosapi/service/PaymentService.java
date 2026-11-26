@@ -7,6 +7,7 @@ import com.gdev.gestionprestamosapi.model.LoanStatus;
 import com.gdev.gestionprestamosapi.model.Payment;
 import com.gdev.gestionprestamosapi.repository.LoanRepository;
 import com.gdev.gestionprestamosapi.repository.PaymentRepository;
+import com.gdev.gestionprestamosapi.security.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,9 @@ public class PaymentService {
     public PaymentResponse create(UUID loanId, PaymentRequest request) {
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Préstamo no encontrado"));
+        if (!loan.getTenantId().equals(SecurityUtils.getCurrentUsername())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El préstamo no pertenece al usuario autenticado");
+        }
 
         Payment payment = new Payment(loan, request.amount(), request.paymentDate());
         Payment saved = paymentRepository.save(payment);
@@ -49,8 +53,10 @@ public class PaymentService {
 
     @Transactional(readOnly = true)
     public List<PaymentResponse> findByLoan(UUID loanId) {
-        if (!loanRepository.existsById(loanId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Préstamo no encontrado");
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Préstamo no encontrado"));
+        if (!loan.getTenantId().equals(SecurityUtils.getCurrentUsername())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El préstamo no pertenece al usuario autenticado");
         }
         return paymentRepository.findByLoanId(loanId).stream().map(this::toResponse).toList();
     }

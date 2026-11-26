@@ -30,7 +30,7 @@ class PrestamoControllerTest {
     @Test
     void crearPrestamo_MapeaMontoYClienteIdCorrectamente() {
         Map<String, Object> body = Map.of("monto", 1500.0, "clienteId", "cli-1");
-        Prestamo prestamoEsperado = new Prestamo("id-1", 1500.0, "cli-1", LocalDate.now(), EstadoPrestamo.PENDIENTE);
+        Prestamo prestamoEsperado = new Prestamo("id-1", 1500.0, "cli-1", LocalDate.now(), EstadoPrestamo.PENDIENTE, "tenant-1");
 
         when(prestamoService.crearPrestamo(1500.0, "cli-1")).thenReturn(prestamoEsperado);
 
