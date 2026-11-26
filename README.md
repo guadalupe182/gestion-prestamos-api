@@ -61,6 +61,14 @@ DB_URL=jdbc:h2:mem:gdevloans;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
 
 ---
 
+## 🔒 Seguridad de datos (Fase 3)
+
+- Todas las rutas de negocio requieren un JWT válido; por defecto cualquier endpoint no público exige autenticación.
+- Los listados y operaciones de préstamos, pagos y clientes se filtran por el usuario/tenant autenticado derivado del token.
+- El `tenantId` enviado en el cuerpo se ignora; siempre se usa el del JWT.
+- La licencia de GDEV se valida en cada request, con cache en memoria de 5 minutos para evitar llamadas repetidas al CRM.
+- El acceso a un recurso de otro tenant/usuario devuelve `403 Forbidden`.
+
 ## 📈 Cálculo de intereses
 
 La API soporta dos flujos de préstamos:
