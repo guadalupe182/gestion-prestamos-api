@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,6 +25,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -110,5 +112,20 @@ class PaymentServiceTest {
         var payments = paymentService.findByLoan(loanId);
 
         assertThat(payments).hasSize(1);
+    }
+
+    @Test
+    void create_ForbiddenWhenLoanBelongsToAnotherTenant() {
+        UUID loanId = UUID.randomUUID();
+        Client client = new Client("Ana", "ana@test.com");
+        Loan loan = new Loan(client, new BigDecimal("1000.00"), "other-tenant");
+        loan.setId(loanId);
+
+        when(loanRepository.findById(loanId)).thenReturn(Optional.of(loan));
+
+        assertThatThrownBy(() -> paymentService.create(loanId,
+                new PaymentRequest(new BigDecimal("100.00"), LocalDate.now())))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("403");
     }
 }
