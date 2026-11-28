@@ -7,7 +7,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record PaymentRequest(
-        @NotNull @DecimalMin(value = "0.01") BigDecimal amount,
+        @NotNull(message = "El monto es obligatorio")
+        @DecimalMin(value = "0.01", message = "El monto debe ser mayor a cero") BigDecimal amount,
         LocalDate paymentDate
 ) {
 }
