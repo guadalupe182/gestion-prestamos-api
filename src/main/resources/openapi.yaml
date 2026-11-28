@@ -50,6 +50,96 @@ paths:
         '200':
           description: Cálculo realizado correctamente
 
+  /loans:
+    get:
+      summary: Listar préstamos del usuario autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de préstamos del tenant autenticado
+    post:
+      summary: Crear un préstamo JPA
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanRequest'
+      responses:
+        '201':
+          description: Préstamo creado
+
+  /loans/{id}:
+    get:
+      summary: Obtener un préstamo por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Préstamo encontrado
+        '403':
+          description: El préstamo no pertenece al usuario
+    put:
+      summary: Actualizar un préstamo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanRequest'
+      responses:
+        '200':
+          description: Préstamo actualizado
+    delete:
+      summary: Eliminar un préstamo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Préstamo eliminado
+
+  /loans/{id}/calculate-interest:
+    get:
+      summary: Calcular interés simple de un préstamo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Interés calculado
+
   /auth/register:
     post:
       summary: Registrar usuario validando licencia GDEV
@@ -133,3 +223,14 @@ components:
       properties:
         amount: { type: number, format: double, minimum: 0.01 }
         paymentDate: { type: string, format: date }
+    LoanRequest:
+      type: object
+      required: [clientId, amount, tenantId]
+      properties:
+        clientId: { type: string, format: uuid }
+        amount: { type: number, format: double, minimum: 0.01 }
+        interestRate: { type: number, format: double }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        status: { type: string }
+        tenantId: { type: string, description: "Ignorado por el servidor; se usa el del JWT" }
