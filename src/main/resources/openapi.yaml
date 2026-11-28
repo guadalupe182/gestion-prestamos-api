@@ -1,45 +1,234 @@
 openapi: 3.0.0
 info:
   title: API Gestión de Préstamos (Gdev)
-  description: API REST para administrar clientes y préstamos en memoria.
+  description: |
+    API REST para administrar clientes y préstamos. Incluye dos flujos:
+    - En memoria (`/api/v1`): clientes y préstamos simples.
+    - JPA (`/api/loans`): préstamos con interés simple y pagos.
   version: 1.0.0
 servers:
   - url: http://localhost:8080/api/v1
     description: Servidor Local
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [username, password, licenseKey]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: contador
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+          example: passwordSegura123
+        licenseKey:
+          type: string
+          minLength: 3
+          maxLength: 512
+          example: licencia-gdev
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: contador
+        password:
+          type: string
+          example: passwordSegura123
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 3600
+    LicenseValidationRequest:
+      type: object
+      required: [licenseKey]
+      properties:
+        licenseKey:
+          type: string
+          example: licencia-gdev
+    LicenseValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Licencia válida
+    ClienteRequest:
+      type: object
+      required: [nombre, email, edad, tipoCliente]
+      properties:
+        nombre:
+          type: string
+          example: Juan Perez
+        email:
+          type: string
+          example: juan@test.com
+        edad:
+          type: integer
+          example: 30
+        tipoCliente:
+          type: string
+          enum: [REGULAR, VIP]
+          example: VIP
+    PrestamoRequest:
+      type: object
+      required: [monto, clienteId]
+      properties:
+        monto:
+          type: number
+          format: double
+          example: 1000.0
+        clienteId:
+          type: string
+          example: cli-123
+    LoanRequest:
+      type: object
+      required: [clientId, amount, tenantId]
+      properties:
+        clientId:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 1000.0
+        interestRate:
+          type: number
+          format: double
+          example: 0.10
+        startDate:
+          type: string
+          format: date
+          example: 2026-01-01
+        endDate:
+          type: string
+          format: date
+          example: 2026-12-31
+        status:
+          type: string
+          enum: [ACTIVE, PAID]
+          example: ACTIVE
+        tenantId:
+          type: string
+          description: Ignorado por el servidor; se usa el tenant del JWT.
+          example: tenant-1
+    PaymentRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 500.0
+        paymentDate:
+          type: string
+          format: date
+          example: 2026-02-01
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Datos inválidos
 paths:
   /clientes:
     get:
-      summary: Obtener todos los clientes
+      summary: Obtener todos los clientes del tenant autenticado
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: Lista de clientes exitosa
+          description: Lista de clientes
+        '401':
+          description: No autenticado
     post:
       summary: Crear un nuevo cliente
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                nombre: { type: string }
-                email: { type: string }
-                edad: { type: integer }
-                tipoCliente: { type: string, enum: [REGULAR, VIP] }
+              $ref: '#/components/schemas/ClienteRequest'
       responses:
         '201':
-          description: Cliente creado exitosamente
+          description: Cliente creado
+        '400':
+          description: Datos inválidos
+        '401':
+          description: No autenticado
+
+  /prestamos:
+    post:
+      summary: Crear un préstamo en memoria
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrestamoRequest'
+      responses:
+        '201':
+          description: Préstamo creado
+        '400':
+          description: Datos inválidos
+        '401':
+          description: No autenticado
+        '403':
+          description: El cliente no pertenece al usuario
 
   /prestamos/activos:
     get:
-      summary: Obtener préstamos con estado PENDIENTE
+      summary: Obtener préstamos en memoria con estado PENDIENTE
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: Lista de préstamos activos
+          description: Lista de préstamos activos del tenant
+        '401':
+          description: No autenticado
 
   /prestamos/{id}/total-pagar:
-    get:
-      summary: Calcular el monto total a pagar con intereses
+    patch:
+      summary: Calcular monto total a pagar con intereses (flujo en memoria)
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -48,7 +237,13 @@ paths:
             type: string
       responses:
         '200':
-          description: Cálculo realizado correctamente
+          description: Cálculo realizado
+        '401':
+          description: No autenticado
+        '403':
+          description: El préstamo no pertenece al usuario
+        '404':
+          description: Préstamo no encontrado
 
   /auth/register:
     post:
@@ -62,6 +257,13 @@ paths:
       responses:
         '201':
           description: Usuario registrado y token JWT emitido
+        '400':
+          description: Licencia inválida o datos inválidos
+        '409':
+          description: Usuario ya registrado
+        '503':
+          description: No fue posible validar la licencia
+
   /auth/login:
     post:
       summary: Iniciar sesión
@@ -74,10 +276,157 @@ paths:
       responses:
         '200':
           description: Token JWT emitido
+        '401':
+          description: Credenciales inválidas
+
+  /auth/validate-license:
+    post:
+      summary: Validar una licencia GDEV sin crear cuenta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LicenseValidationRequest'
+      responses:
+        '200':
+          description: Resultado de validación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseValidationResponse'
+        '400':
+          description: Datos inválidos
+        '503':
+          description: No fue posible validar la licencia
+
+  /loans:
+    get:
+      summary: Listar préstamos JPA del tenant autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de préstamos
+        '401':
+          description: No autenticado
+    post:
+      summary: Crear un préstamo JPA
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanRequest'
+      responses:
+        '201':
+          description: Préstamo creado
+        '400':
+          description: Datos inválidos
+        '401':
+          description: No autenticado
+        '403':
+          description: El cliente no pertenece al usuario
+
+  /loans/{id}:
+    get:
+      summary: Obtener un préstamo JPA por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Préstamo encontrado
+        '401':
+          description: No autenticado
+        '403':
+          description: El préstamo no pertenece al usuario
+        '404':
+          description: Préstamo no encontrado
+    put:
+      summary: Actualizar un préstamo JPA
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanRequest'
+      responses:
+        '200':
+          description: Préstamo actualizado
+        '400':
+          description: Datos inválidos
+        '401':
+          description: No autenticado
+        '403':
+          description: El préstamo no pertenece al usuario
+        '404':
+          description: Préstamo no encontrado
+    delete:
+      summary: Eliminar un préstamo JPA
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Préstamo eliminado
+        '401':
+          description: No autenticado
+        '403':
+          description: El préstamo no pertenece al usuario
+        '404':
+          description: Préstamo no encontrado
+
+  /loans/{id}/calculate-interest:
+    get:
+      summary: Calcular interés simple de un préstamo JPA
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Interés calculado
+        '401':
+          description: No autenticado
+        '403':
+          description: El préstamo no pertenece al usuario
+        '404':
+          description: Préstamo no encontrado
 
   /loans/{loanId}/payments:
     post:
-      summary: Registrar un pago para un préstamo
+      summary: Registrar un pago para un préstamo JPA
+      security:
+        - bearerAuth: []
       parameters:
         - name: loanId
           in: path
@@ -93,9 +442,19 @@ paths:
               $ref: '#/components/schemas/PaymentRequest'
       responses:
         '201':
-          description: Pago registrado correctamente
+          description: Pago registrado
+        '400':
+          description: Datos inválidos
+        '401':
+          description: No autenticado
+        '403':
+          description: El préstamo no pertenece al usuario
+        '404':
+          description: Préstamo no encontrado
     get:
-      summary: Obtener el historial de pagos de un préstamo
+      summary: Obtener historial de pagos de un préstamo JPA
+      security:
+        - bearerAuth: []
       parameters:
         - name: loanId
           in: path
@@ -106,30 +465,9 @@ paths:
       responses:
         '200':
           description: Historial de pagos
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-  schemas:
-    RegisterRequest:
-      type: object
-      required: [username, password, licenseKey]
-      properties:
-        username: { type: string }
-        password: { type: string }
-        licenseKey: { type: string }
-    LoginRequest:
-      type: object
-      required: [username, password]
-      properties:
-        username: { type: string }
-        password: { type: string }
-    PaymentRequest:
-      type: object
-      required: [amount]
-      properties:
-        amount: { type: number, format: double, minimum: 0.01 }
-        paymentDate: { type: string, format: date }
+        '401':
+          description: No autenticado
+        '403':
+          description: El préstamo no pertenece al usuario
+        '404':
+          description: Préstamo no encontrado
